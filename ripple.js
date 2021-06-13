@@ -3,9 +3,9 @@
  * @description This contains the necessary code for generating the ripple effect seen when clicking on buttons.
  * 
  * @author Alex Shandilis
- * @version 5/1/2021
+ * @version 6/13/2021
  * 
- */
+*/
 
 var rippleBtns = document.getElementsByClassName("addRippleBtn");
 
@@ -15,67 +15,135 @@ var rippleBtns = document.getElementsByClassName("addRippleBtn");
  * @param {String} rgb 
  * @purpose This method creates the ripple effect seen on buttons.
  */
-function ripple(id, rgb) {    
-    var elem = document.getElementById(id);
-    elem.style.overflow = "hidden"; //This is to ensure that the parent element of the ripple hides the overflow of the ripple object.
-    var e = window.event; //stores window.event in var "e"
-    
-    var parentWidth = parseInt((getComputedStyle(elem).width).substring(0,(getComputedStyle(elem).width).length-2)); //Get width of parent
-    var parentHeight = parseInt((getComputedStyle(elem).height).substring(0,(getComputedStyle(elem).height).length-2)); //Get height of parent
-    var rippleSize; //creates variable rippleSize, contains height of ripple 
-    rippleSize = Math.sqrt(Math.pow(parentWidth,2) + Math.pow(parentHeight,2)); //Calculates the ripple size using the expression seen here
-    var rippleContainer = document.createElement("div");
-    rippleContainer.style.position = "relative"; //Creates a container for the ripple object, then set the position property in its style sheet to "relative"
-    elem.appendChild(rippleContainer); //Ripple container appended to the parent element.
-    var rippleObject = document.createElement("div"); //Creates the ripple object as a div
-    rippleContainer.appendChild(rippleObject); //Appends the ripple object to the ripple container
-    rippleObject.style.position = "relative"; //Set the position style of the ripple object to RELATIVE
-    var parentObject = rippleObject.parentElement; //Get the parent of the ripple object.
-    var x = e.clientX - parentObject.getBoundingClientRect().left;  //First get the RELATIVE x position of the mouse within the container by taking the mouse x-value
-                                                                    //and subtracting the parent element's distance from the left
-    var y = e.clientY - parentObject.getBoundingClientRect().top;   //First get the RELATIVE y position of the mouse within the container by taking the mouse y-value
-                                                                    //and subtracting the parent element's distance from the top
+function createRipple(btn, rgb, coordinates) {
+    btn.classList.add("rippleBtn");
+    console.log('ripple created');
+    btn.style.overflow = "hidden"; //This is to ensure that the parent element of the ripple hides the overflow of the ripple object.
+    let parentWidth = btn.offsetWidth,
+        parentHeight = btn.offsetHeight,
+        rippleSize = (parentWidth > parentHeight) ? parentWidth * 2 : parentHeight * 2,
+        rippleContainer = document.createElement("div"),
+        parentOffset = {
+            offsetTop:btn.getBoundingClientRect().top,
+            offsetLeft:btn.getBoundingClientRect().left
+        };
+    if(getComputedStyle(btn).position == "absolute" || getComputedStyle(btn).position == "relative" || getComputedStyle(btn).position == "static") parentOffset = { offsetTop: 0, offsetLeft:0 };
+    btn.appendChild(rippleContainer); //Ripple container appended to the parent element.
+    rippleContainer.classList.add("rippleContainer");
+    rippleContainer.style.height = parentHeight + "px";
+    rippleContainer.style.width = parentWidth + "px";
+    rippleContainer.style.left = parentOffset.offsetLeft + "px";
+    rippleContainer.style.top = parentOffset.offsetTop + "px";
+    let rippleObject = document.createElement("div");
+    rippleContainer.appendChild(rippleObject);
+    rippleObject.style.position = "relative"; 
     rippleObject.style.width = (rippleSize*2) + "px";
     rippleObject.style.height = (rippleSize*2) + "px";
-    var styleLeft = (x - ((rippleSize*2)/2));   //This calculates and stores the position values that will be used for the ripple object
-    var styleTop = (y - ((rippleSize*2)/2));    //This calculates and stores the position values that will be used for the ripple object
+    let styleLeft = (coordinates.x - ((rippleSize*2)/2)),   //This calculates and stores the position values that will be used for the ripple object
+        styleTop = (coordinates.y - ((rippleSize*2)/2));    //This calculates and stores the position values that will be used for the ripple object
     rippleObject.style.position = "relative";
     rippleObject.style.left = styleLeft+"px";
     rippleObject.style.top = styleTop+"px";
     rippleObject.style.backgroundColor = rgb;
     rippleObject.style.zIndex = 1;
+    let overlay = btn.querySelectorAll("[overripple]");
+    for(var i = 0; i < overlay.length; i++) {
+        overlay[i].style.zIndex = 2;
+        if(getComputedStyle(overlay[i]).position == "static") overlay[i].style.position = "relative";
+    }
+    rippleObject.style.animationDuration = 0.5 * rippleSize/50 + "s";
     rippleObject.classList.add("rippleEffect"); 
-    let object = rippleObject;
-    rippleObject.rippleStatus = "active"
-    rippleObject.addEventListener("mouseup", function() {
-        if(rippleObject.rippleStatus == "active") {
-            rippleObject.rippleStatus = "remove";
-            object.classList.add('rippleEnd');
-            setTimeout(function() { //This setTimeout ensures that the fade-out animation on the ripple object will be allowed to run before the actual ripple 
-                                    //object is deleted after 2 seconds.
-                object.remove();
-            }, 2000);
-        }
-    });
-    rippleObject.addEventListener("mouseout", function() {  //This serves an identical purpose to the other event listener, except that it listens for the mouse
-                                                            //no longer hovering over the ripple object.
-        if(rippleObject.rippleStatus == "active") {
-            rippleObject.rippleStatus = "remove";
-            object.classList.add('rippleEnd');
-            setTimeout(function() {
-                object.parentNode.remove();
-                object.remove();
-            }, 2000);
-        }
-    });
-    return;
+    //if (e.touches != undefined) rippleObject.targetX = e.touches[0].screenX, rippleObject.targetY = e.touches[0].screenY;
+    if(!btn.hasAttribute("noshadow")) btn.style.boxShadow = "0px 3px 10px 2px rgba(0,0,0,0.3)";
+    rippleObject.rippleStatus = "active";
+    return rippleObject;
+}
+
+function removeRipple(btn) {
+    if(btn.ripple.rippleStatus == "active") {
+        btn.style.boxShadow = "0px 0px 5px 2px rgba(0,0,0,0)";
+        btn.ripple.rippleStatus = "remove";
+        btn.ripple.classList.add('rippleEnd');
+        setTimeout(removeRippleObject, 2000, btn.ripple);
+        btn.touchFiring = false;
+        
+    }
+}
+
+function getCenterCoordinates(element) {
+    let x = element.getClientRects()[0].left + (element.width / 2) 
+    let y = element.getClientRects()[0].top + (element.height / 2) 
+    return { "x": x, "y": y };
+}
+
+/**
+ * 
+ * @param {Object} event event must be passed in to retrieve mouse coordinates
+ * @param {Object} element 
+ * @returns {JSON} coordinates of mouse in element
+ */
+function getRelativeCoordinates(event, element) {
+    let x = ((event.clientX == undefined) ? event.touches[0].clientX : event.clientX) - element.getBoundingClientRect().left;
+    let y = ((event.clientY == undefined) ? event.touches[0].clientY : event.clientY) - element.getBoundingClientRect().top;
+    return { "x": x, "y": y };
+}
+
+/**
+ * 
+ * @param {Object} btn button that is being rippled
+ * @param {String} rgb 
+ * @returns 
+ */
+function getBtnRipple(btn, rgb) {
+    let e = window.event;
+    let coordinates = getRelativeCoordinates(e, btn);
+    //if (e.touches != undefined) rippleObject.targetX = e.touches[0].screenX, rippleObject.targetY = e.touches[0].screenY;
+    return createRipple(btn, rgb, coordinates);
 }
 
 for (var i = 0; i < rippleBtns.length; i++) {
     var currentElement = rippleBtns[i];
-    currentElement.addEventListener('mousedown', function() {
-        var color = this.getAttribute("rippleColor");
-        var nameID = this.getAttribute("id");
-        ripple(nameID, color);
-    })
+    let eventListeners = ["touchstart","mousedown"];
+    for(var j = 0; j < eventListeners.length; j++) {
+        currentElement.addEventListener(eventListeners[j], function(event) {
+            this.rippleActive = true;
+            var color = this.getAttribute("rippleColor");
+            var nameID = this.getAttribute("id");
+            var rippleElement
+            if(event.type == "touchstart") {
+                this.touchFiring = true;
+                rippleElement = getBtnRipple(this, color);
+            } else {
+                if(this.touchFiring != true) {
+                    rippleElement = getBtnRipple(this, color);
+                }
+            }
+            this.ripple = rippleElement
+            event.preventDefault();
+            return false;
+        });
+        
+    }
+    let endEventListeners = ["touchcancel","touchend","touchmove","mouseleave","mouseup","contextmenu"];
+    for(var j = 0; j < endEventListeners.length; j++) {
+        currentElement.addEventListener(endEventListeners[j], function(event) {
+            if(event.type == "touchmove") {
+                let distanceX = event.touches[0].screenX - this.ripple.targetX;
+                let distanceY = event.touches[0].screenY - this.ripple.targetY;
+                let distance = Math.sqrt((Math.pow(distanceX,2)) + (Math.pow(distanceY,2)));
+                if(distance > 20 && this.rippleActive == true) {
+                    removeRipple(this, this.ripple);
+                }
+            } else {
+                if(this.rippleActive == true) {
+                    removeRipple(this);
+                }
+            }
+            
+        });
+    }
+}
+
+function removeRippleObject(obj) {
+    obj.parentElement.remove();
 }

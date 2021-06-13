@@ -19,4 +19,22 @@
 
 .addRippleBtn {
     overflow:hidden;
+    transition:0.5s ease;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+}
+
+.rippleBtn {
+    overflow:hidden;
+    transition:0.5s ease;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+}
+
+.rippleContainer {
+    position:absolute;
+    overflow:hidden;
+    border-radius:inherit;
+    border-width:inherit;
+    border-style:inherit;
 }
